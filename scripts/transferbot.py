@@ -1,48 +1,30 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 r"""
 This script transfers pages from a source wiki to a target wiki.
-
 It also copies edit history to a subpage.
-
 The following parameters are supported:
-
 -tolang:          The target site code.
-
 -tofamily:        The target site family.
-
 -prefix:          Page prefix on the new site.
-
 -overwrite:       Existing pages are skipped by default. Use this option to
                   overwrite pages.
-
 -target           Use page generator of the target site
-
-
 Internal links are *not* repaired!
-
 Pages to work on can be specified using any of:
-
 &params;
-
 Examples
 --------
-
 Transfer all pages in category "Query service" from the English Wikipedia to
 the Arabic Wiktionary, adding "Wiktionary:Import enwp/" as prefix:
-
     python pwb.py transferbot -family:wikipedia -lang:en -cat:"Query service" \
         -tofamily:wiktionary -tolang:ar -prefix:"Wiktionary:Import enwp/"
-
 Copy the template "Query service" from the English Wikipedia to the
 Arabic Wiktionary:
-
     python pwb.py transferbot -family:wikipedia -lang:en \
         -tofamily:wiktionary -tolang:ar -page:"Template:Query service"
-
 Copy 10 wanted templates of German Wikipedia from English Wikipedia to German
     python pwb.py transferbot -family:wikipedia -lang:en \
         -tolang:de -wantedtemplates:10 -target
-
 """
 #
 # (C) Pywikibot team, 2014-2021
@@ -58,13 +40,12 @@ from pywikibot.i18n import twtranslate
 docuReplacements = {'&params;': pagegenerators.parameterHelp}  # noqa: N816
 
 
-def main(*args: str) -> None:
+def main(*args) -> None:
     """
     Process command line arguments and invoke bot.
-
     If args is an empty list, sys.argv is used.
-
     :param args: command line arguments
+    :type args: str
     """
     local_args = pywikibot.handle_args(args)
 
@@ -111,7 +92,6 @@ def main(*args: str) -> None:
     ---------------------------
     Source: {fromsite}
     Target: {tosite}
-
     Generator of pages to transfer: {gen_args}
     {target}
     Prefix for transferred pages: {prefix}
@@ -127,7 +107,7 @@ def main(*args: str) -> None:
             page = pywikibot.Page(fromsite, title)
         else:
             target_title = (prefix + title)
-        targetpage = pywikibot.Page(tosite, target_title)
+        targetpage = pywikibot.Page(tosite, target_title.replace("Draft:", ""))
         edithistpage = pywikibot.Page(tosite, target_title + '/edithistory')
 
         if targetpage.exists():
@@ -164,28 +144,8 @@ def main(*args: str) -> None:
         text = page.get(get_redirect=True)
         source_link = page.title(as_link=True, insite=targetpage.site)
 
-        note = twtranslate(
-            tosite, 'transferbot-target',
-            {'source': source_link,
-             'history': edithistpage.title(as_link=True,
-                                           insite=targetpage.site)}
-        )
-        text += '<noinclude>\n\n<small>{}</small></noinclude>'.format(note)
-
-        pywikibot.log('Getting edit history.')
-        historytable = page.getVersionHistoryTable()
-
-        pywikibot.log('Putting edit history.')
-        summary = twtranslate(tosite, 'transferbot-summary',
-                              {'source': source_link})
-        edithistpage.put(historytable, summary=summary)
-
-        pywikibot.log('Putting page text.')
-        edithist_link = ' ([[{target}/edithistory|history]])'.format(
-            target=targetpage.title()
-            if not targetpage.namespace().subpages else '')
-        summary += edithist_link
-        targetpage.put(text, summary=summary)
+        
+        targetpage.put(text, summary="new")
 
 
 if __name__ == '__main__':
